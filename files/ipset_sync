@@ -59,8 +59,9 @@ function construct_ipset_dump() {
 
   # recreate the dump format from config files manually
   (
-    cat "${f_header}" | sed "s/^create ${id} /create ${alias} /"
-
+    if ! ipset -L ${id} &>/dev/null; then
+      cat "${f_header}" | sed "s/^create ${id} /create ${alias} /"
+    fi
     if [ ${no_content} -eq 0 ]; then
       # * skip
       #   * comment lines
@@ -92,7 +93,6 @@ function import_ipset() {
   local id=$1
   local alias=${2:-${id}}
   local no_content=${3:-0}
-
   ipset restore < <(construct_ipset_dump ${id} ${alias} ${no_content})
 }
 
@@ -199,7 +199,7 @@ if ipset_exists ${set_id}; then
     fi
 
     # drop the old one
-    ipset destroy ${set_id}
+    ipset flush ${set_id}
 
     # create it with content as expected
     import_ipset ${set_id} ${set_id} ${ignore_contents}
@@ -236,7 +236,7 @@ if ipset_exists ${set_id}; then
       fi
 
       # cleanup, drop the unused one
-      ipset destroy ${swap_alias}
+      ipset flush ${swap_alias}
 
       if [ ${result} -eq 0 ]; then
         # success
